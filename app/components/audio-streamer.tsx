@@ -1,23 +1,28 @@
 "use client"
 
-import { useEffect, useRef, useImperativeHandle, forwardRef } from "react"
+import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from "react"
 
 interface AudioStreamerProps {
   isActive: boolean
   onTranscriptUpdate: (text: string) => void
   feedbackEnabled: boolean
+  onError?: (error: string) => void
+  onStatusChange?: (status: "idle" | "recording" | "processing" | "error") => void
 }
 
 export const AudioStreamer = forwardRef<any, AudioStreamerProps>(
-  ({ isActive, onTranscriptUpdate, feedbackEnabled }, ref) => {
+  ({ isActive, onTranscriptUpdate, feedbackEnabled, onError, onStatusChange }, ref) => {
     const mediaRecorderRef = useRef<MediaRecorder | null>(null)
     const streamRef = useRef<MediaStream | null>(null)
     const websocketRef = useRef<WebSocket | null>(null)
     const audioChunksRef = useRef<Blob[]>([])
+    const recognitionRef = useRef<any>(null)
+    const isStreamingRef = useRef(false)
 
     useImperativeHandle(ref, () => ({
       startStreaming,
       stopStreaming,
+      isStreaming: () => isStreamingRef.current,
     }))
 
     useEffect(() => {
@@ -32,30 +37,118 @@ export const AudioStreamer = forwardRef<any, AudioStreamerProps>(
       }
     }, [isActive])
 
-    const startStreaming = async () => {
+    const startStreaming = useCallback(async () => {
+      if (isStreamingRef.current) return
+
       try {
-        // Get microphone access
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            sampleRate: 16000,
-          },
-        })
+        onStatusChange?.("recording")
+        isStreamingRef.current = true
 
-        streamRef.current = stream
+        // Try modern Web Speech API first
+        if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
+          await startSpeechRecognition()
+        } else {
+          // Fallback to MediaRecorder for older browsers
+          await startMediaRecorder()
+        }
+      } catch (error) {
+        console.error("Error starting audio stream:", error)
+        onError?.("Failed to start audio recording. Please check microphone permissions.")
+        onStatusChange?.("error")
+        isStreamingRef.current = false
+      }
+    }, [onError, onStatusChange])
 
-        // Setup WebSocket connection for real-time streaming
-        websocketRef.current = new WebSocket("ws://localhost:3001/ws/transcript")
+    const startSpeechRecognition = useCallback(async () => {
+      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition
+      recognitionRef.current = new SpeechRecognition()
+
+      recognitionRef.current.continuous = true
+      recognitionRef.current.interimResults = true
+      recognitionRef.current.lang = "en-US"
+      recognitionRef.current.maxAlternatives = 1
+
+      recognitionRef.current.onstart = () => {
+        onStatusChange?.("recording")
+      }
+
+      recognitionRef.current.onresult = (event: any) => {
+        let finalTranscript = ""
+        let interimTranscript = ""
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript
+          } else {
+            interimTranscript += transcript
+          }
+        }
+
+        if (finalTranscript.trim()) {
+          onTranscriptUpdate(finalTranscript.trim())
+          onStatusChange?.("processing")
+
+          // Brief delay to show processing state
+          setTimeout(() => {
+            if (isStreamingRef.current) {
+              onStatusChange?.("recording")
+            }
+          }, 1000)
+        }
+      }
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error("Speech recognition error:", event.error)
+        onError?.(`Speech recognition error: ${event.error}`)
+        onStatusChange?.("error")
+      }
+
+      recognitionRef.current.onend = () => {
+        if (isStreamingRef.current) {
+          // Restart recognition if it stops unexpectedly
+          setTimeout(() => {
+            if (isStreamingRef.current && recognitionRef.current) {
+              try {
+                recognitionRef.current.start()
+              } catch (error) {
+                console.error("Error restarting recognition:", error)
+              }
+            }
+          }, 100)
+        }
+      }
+
+      recognitionRef.current.start()
+    }, [onTranscriptUpdate, onError, onStatusChange])
+
+    const startMediaRecorder = useCallback(async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 16000,
+        },
+      })
+
+      streamRef.current = stream
+
+      // Try WebSocket connection for real-time processing
+      try {
+        websocketRef.current = new WebSocket("wss://api.example.com/ws/transcript")
 
         websocketRef.current.onopen = () => {
           console.log("WebSocket connected for transcript streaming")
         }
 
         websocketRef.current.onmessage = (event) => {
-          const data = JSON.parse(event.data)
-          if (data.text) {
-            onTranscriptUpdate(data.text)
+          try {
+            const data = JSON.parse(event.data)
+            if (data.text) {
+              onTranscriptUpdate(data.text)
+            }
+          } catch (error) {
+            console.error("Error parsing WebSocket message:", error)
           }
         }
 
@@ -64,31 +157,40 @@ export const AudioStreamer = forwardRef<any, AudioStreamerProps>(
           // Fallback to simulation
           simulateTranscription()
         }
-
-        // Setup MediaRecorder for audio chunks
-        const mediaRecorder = new MediaRecorder(stream, {
-          mimeType: "audio/webm;codecs=opus",
-        })
-
-        mediaRecorderRef.current = mediaRecorder
-        audioChunksRef.current = []
-
-        mediaRecorder.ondataavailable = async (event) => {
-          if (event.data.size > 0) {
-            audioChunksRef.current.push(event.data)
-            await sendAudioChunk(event.data)
-          }
-        }
-
-        mediaRecorder.start(1000) // Capture every 1 second
       } catch (error) {
-        console.error("Error starting audio stream:", error)
-        // Fallback to simulation for demo
+        console.error("WebSocket connection failed:", error)
         simulateTranscription()
       }
-    }
 
-    const stopStreaming = () => {
+      // Setup MediaRecorder
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: "audio/webm;codecs=opus",
+      })
+
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = async (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+          await sendAudioChunk(event.data)
+        }
+      }
+
+      mediaRecorder.start(1000) // Capture every 1 second
+    }, [onTranscriptUpdate])
+
+    const stopStreaming = useCallback(() => {
+      isStreamingRef.current = false
+
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop()
+        } catch (error) {
+          console.error("Error stopping recognition:", error)
+        }
+      }
+
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
         mediaRecorderRef.current.stop()
       }
@@ -100,15 +202,15 @@ export const AudioStreamer = forwardRef<any, AudioStreamerProps>(
       if (websocketRef.current) {
         websocketRef.current.close()
       }
-    }
 
-    const sendAudioChunk = async (audioBlob: Blob) => {
+      onStatusChange?.("idle")
+    }, [onStatusChange])
+
+    const sendAudioChunk = useCallback(async (audioBlob: Blob) => {
       try {
-        // Convert blob to base64 for transmission
         const arrayBuffer = await audioBlob.arrayBuffer()
         const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
 
-        // Send to STT service
         const response = await fetch("/api/stream/audio", {
           method: "POST",
           headers: {
@@ -127,26 +229,25 @@ export const AudioStreamer = forwardRef<any, AudioStreamerProps>(
       } catch (error) {
         console.error("Error sending audio chunk:", error)
       }
-    }
+    }, [])
 
-    const simulateTranscription = () => {
-      // Simulate real-time transcription for demo
+    const simulateTranscription = useCallback(() => {
       const samplePhrases = [
-        "I believe that this policy would significantly benefit students by reducing stress levels.",
-        "The evidence clearly demonstrates that homework creates an unnecessary burden on families.",
+        "I believe this policy would significantly benefit students by reducing academic pressure.",
+        "The evidence clearly demonstrates that homework creates unnecessary stress for families.",
         "We must consider the long-term implications for child development and mental health.",
-        "Studies have shown that excessive homework leads to decreased motivation and burnout.",
+        "Studies have shown that excessive homework leads to decreased motivation in learning.",
         "The opposition fails to address the core issue of educational inequality in our system.",
-        "This approach would create more problems than it solves in the current educational framework.",
+        "This approach would create more problems than it solves in the current framework.",
         "We need to examine the broader context of educational reform and student wellbeing.",
-        "The current system is failing our children by prioritizing quantity over quality of learning.",
-        "Research indicates that countries with less homework often outperform those with more.",
-        "We should focus on making classroom time more effective rather than extending learning hours.",
+        "The current system is failing our children by prioritizing quantity over quality.",
+        "Research indicates that countries with less homework often outperform others academically.",
+        "We should focus on making classroom time more effective rather than extending study hours.",
       ]
 
       let phraseIndex = 0
       const interval = setInterval(() => {
-        if (!isActive) {
+        if (!isStreamingRef.current) {
           clearInterval(interval)
           return
         }
@@ -155,12 +256,12 @@ export const AudioStreamer = forwardRef<any, AudioStreamerProps>(
           onTranscriptUpdate(samplePhrases[phraseIndex])
           phraseIndex++
         } else {
-          phraseIndex = 0 // Loop back
+          phraseIndex = 0
         }
-      }, 3000) // New phrase every 3 seconds
-    }
+      }, 4000)
+    }, [onTranscriptUpdate])
 
-    return null // This component doesn't render anything
+    return null
   },
 )
 

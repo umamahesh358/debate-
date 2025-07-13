@@ -5,137 +5,199 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Switch } from "@/components/ui/switch"
-import { Mic, MicOff, Volume2, VolumeX, Zap, Target, AlertTriangle, CheckCircle } from "lucide-react"
-import { AudioStreamer } from "./audio-streamer"
-import { FeedbackOverlay } from "./feedback-overlay"
-import { TranscriptDisplay } from "./transcript-display"
+import { Mic, MicOff, Volume2, VolumeX, RotateCcw, TrendingUp, AlertCircle, CheckCircle, Clock } from "lucide-react"
 
-interface ContinuousVoiceFeedbackProps {
-  isLive: boolean
-  onLiveChange: (live: boolean) => void
-  feedbackEnabled: boolean
-  onFeedbackToggle: (enabled: boolean) => void
-}
-
-interface FeedbackItem {
-  id: string
-  type: "warning" | "info" | "success"
-  issue: string
-  diagnosis: string
-  suggestion: string
+interface VoiceFeedback {
   timestamp: number
-  relevanceScore?: number
+  type: "pace" | "clarity" | "volume" | "filler" | "confidence"
+  message: string
+  severity: "low" | "medium" | "high"
+  suggestion: string
 }
 
-export function ContinuousVoiceFeedback({
-  isLive,
-  onLiveChange,
-  feedbackEnabled,
-  onFeedbackToggle,
-}: ContinuousVoiceFeedbackProps) {
-  const [transcript, setTranscript] = useState<string[]>([])
-  const [currentFeedback, setCurrentFeedback] = useState<FeedbackItem | null>(null)
-  const [feedbackHistory, setFeedbackHistory] = useState<FeedbackItem[]>([])
-  const [audioEnabled, setAudioEnabled] = useState(true)
-  const [sessionStats, setSessionStats] = useState({
-    duration: 0,
-    wordsSpoken: 0,
-    feedbackCount: 0,
-    relevanceScore: 85,
-    improvementRate: 73,
+interface VoiceMetrics {
+  pace: number // words per minute
+  clarity: number // percentage
+  volume: number // percentage
+  confidence: number // percentage
+  fillerWords: number
+  totalWords: number
+}
+
+export function ContinuousVoiceFeedback() {
+  const [isRecording, setIsRecording] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isMuted, setIsMuted] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const [transcript, setTranscript] = useState("")
+  const [feedback, setFeedback] = useState<VoiceFeedback[]>([])
+  const [metrics, setMetrics] = useState<VoiceMetrics>({
+    pace: 0,
+    clarity: 0,
+    volume: 0,
+    confidence: 0,
+    fillerWords: 0,
+    totalWords: 0,
   })
 
-  const audioStreamerRef = useRef<any>(null)
-  const feedbackEventSourceRef = useRef<EventSource | null>(null)
-  const timerRef = useRef<NodeJS.Timeout>()
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  const recognitionRef = useRef<any>(null)
 
-  // Session timer
   useEffect(() => {
-    if (isLive) {
-      timerRef.current = setInterval(() => {
-        setSessionStats((prev) => ({ ...prev, duration: prev.duration + 1 }))
+    // Initialize speech recognition
+    if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
+      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition
+      recognitionRef.current = new SpeechRecognition()
+      recognitionRef.current.continuous = true
+      recognitionRef.current.interimResults = true
+      recognitionRef.current.lang = "en-US"
+
+      recognitionRef.current.onresult = (event: any) => {
+        let finalTranscript = ""
+        let interimTranscript = ""
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript
+          } else {
+            interimTranscript += transcript
+          }
+        }
+
+        if (finalTranscript) {
+          setTranscript((prev) => prev + finalTranscript + " ")
+          analyzeTranscript(finalTranscript)
+        }
+      }
+
+      recognitionRef.current.onerror = (event: any) => {
+        console.error("Speech recognition error:", event.error)
+      }
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop()
+      }
+    }
+  }, [])
+
+  const analyzeTranscript = (text: string) => {
+    const words = text.trim().split(/\s+/)
+    const fillerWords = ["um", "uh", "like", "you know", "so", "actually", "basically"]
+    const fillerCount = words.filter((word) => fillerWords.includes(word.toLowerCase().replace(/[.,!?]/g, ""))).length
+
+    // Simulate real-time analysis
+    const newFeedback: VoiceFeedback[] = []
+    const currentTimestamp = Date.now()
+
+    // Check for filler words
+    if (fillerCount > 0) {
+      newFeedback.push({
+        timestamp: currentTimestamp,
+        type: "filler",
+        message: `Detected ${fillerCount} filler word${fillerCount > 1 ? "s" : ""}`,
+        severity: fillerCount > 2 ? "high" : "medium",
+        suggestion: "Try to pause instead of using filler words. Take a breath and continue.",
+      })
+    }
+
+    // Simulate pace analysis
+    const wordsPerMinute = (words.length * 60) / (currentTime || 1)
+    if (wordsPerMinute > 180) {
+      newFeedback.push({
+        timestamp: currentTimestamp,
+        type: "pace",
+        message: "Speaking too fast",
+        severity: "medium",
+        suggestion: "Slow down to improve clarity and audience comprehension.",
+      })
+    } else if (wordsPerMinute < 120) {
+      newFeedback.push({
+        timestamp: currentTimestamp,
+        type: "pace",
+        message: "Speaking too slowly",
+        severity: "low",
+        suggestion: "Increase your pace slightly to maintain audience engagement.",
+      })
+    }
+
+    // Update metrics
+    setMetrics((prev) => ({
+      pace: Math.round(wordsPerMinute),
+      clarity: Math.max(85 - fillerCount * 5, 60),
+      volume: Math.random() * 20 + 70, // Simulated
+      confidence: Math.max(90 - fillerCount * 3, 70),
+      fillerWords: prev.fillerWords + fillerCount,
+      totalWords: prev.totalWords + words.length,
+    }))
+
+    if (newFeedback.length > 0) {
+      setFeedback((prev) => [...prev, ...newFeedback].slice(-10)) // Keep last 10 feedback items
+    }
+  }
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+
+      mediaRecorderRef.current = new MediaRecorder(stream)
+      audioChunksRef.current = []
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data)
+      }
+
+      mediaRecorderRef.current.start()
+      setIsRecording(true)
+
+      if (recognitionRef.current) {
+        recognitionRef.current.start()
+      }
+
+      // Start timer
+      const startTime = Date.now()
+      const timer = setInterval(() => {
+        setCurrentTime(Math.floor((Date.now() - startTime) / 1000))
       }, 1000)
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current)
-    }
 
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
-    }
-  }, [isLive])
-
-  // Feedback SSE connection
-  useEffect(() => {
-    if (isLive && feedbackEnabled) {
-      // Connect to Server-Sent Events for real-time feedback
-      feedbackEventSourceRef.current = new EventSource("/api/sse/feedback")
-
-      feedbackEventSourceRef.current.onmessage = (event) => {
-        const feedback: FeedbackItem = JSON.parse(event.data)
-        handleNewFeedback(feedback)
+      mediaRecorderRef.current.onstop = () => {
+        clearInterval(timer)
+        stream.getTracks().forEach((track) => track.stop())
       }
-
-      feedbackEventSourceRef.current.onerror = (error) => {
-        console.error("SSE connection error:", error)
-      }
-    } else {
-      if (feedbackEventSourceRef.current) {
-        feedbackEventSourceRef.current.close()
-        feedbackEventSourceRef.current = null
-      }
-    }
-
-    return () => {
-      if (feedbackEventSourceRef.current) {
-        feedbackEventSourceRef.current.close()
-      }
-    }
-  }, [isLive, feedbackEnabled])
-
-  const handleNewFeedback = (feedback: FeedbackItem) => {
-    setCurrentFeedback(feedback)
-    setFeedbackHistory((prev) => [feedback, ...prev.slice(0, 9)]) // Keep last 10
-    setSessionStats((prev) => ({
-      ...prev,
-      feedbackCount: prev.feedbackCount + 1,
-      relevanceScore: feedback.relevanceScore || prev.relevanceScore,
-    }))
-
-    // Auto-dismiss after 6 seconds
-    setTimeout(() => {
-      setCurrentFeedback(null)
-    }, 6000)
-
-    // Text-to-speech if enabled
-    if (audioEnabled && "speechSynthesis" in window) {
-      const utterance = new SpeechSynthesisUtterance(feedback.diagnosis)
-      utterance.rate = 0.9
-      utterance.volume = 0.7
-      speechSynthesis.speak(utterance)
+    } catch (error) {
+      console.error("Error starting recording:", error)
     }
   }
 
-  const handleTranscriptUpdate = (text: string) => {
-    setTranscript((prev) => [...prev.slice(-19), text]) // Keep last 20 entries
-    setSessionStats((prev) => ({
-      ...prev,
-      wordsSpoken: prev.wordsSpoken + text.split(" ").length,
-    }))
-  }
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+      setDuration(currentTime)
 
-  const handleStartStop = () => {
-    if (isLive) {
-      onLiveChange(false)
-      if (audioStreamerRef.current) {
-        audioStreamerRef.current.stopStreaming()
-      }
-    } else {
-      onLiveChange(true)
-      if (audioStreamerRef.current) {
-        audioStreamerRef.current.startStreaming()
+      if (recognitionRef.current) {
+        recognitionRef.current.stop()
       }
     }
+  }
+
+  const resetSession = () => {
+    setCurrentTime(0)
+    setDuration(0)
+    setTranscript("")
+    setFeedback([])
+    setMetrics({
+      pace: 0,
+      clarity: 0,
+      volume: 0,
+      confidence: 0,
+      fillerWords: 0,
+      totalWords: 0,
+    })
   }
 
   const formatTime = (seconds: number) => {
@@ -144,180 +206,217 @@ export function ContinuousVoiceFeedback({
     return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600"
-    if (score >= 60) return "text-yellow-600"
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case "high":
+        return "bg-red-100 text-red-800 border-red-200"
+      case "medium":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200"
+      case "low":
+        return "bg-blue-100 text-blue-800 border-blue-200"
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200"
+    }
+  }
+
+  const getMetricColor = (value: number, type: string) => {
+    if (type === "pace") {
+      if (value >= 140 && value <= 160) return "text-green-600"
+      if (value >= 120 && value <= 180) return "text-yellow-600"
+      return "text-red-600"
+    }
+    if (value >= 80) return "text-green-600"
+    if (value >= 60) return "text-yellow-600"
     return "text-red-600"
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Recording Controls */}
       <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
         <CardHeader>
-          <CardTitle className="text-2xl flex items-center space-x-2">
-            <Mic className="w-6 h-6 text-blue-600" />
-            <span>Continuous Voice Coaching</span>
-            {isLive && <Badge className="bg-red-500 animate-pulse">LIVE</Badge>}
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Mic className="w-5 h-5 text-blue-600" />
+              <span>Live Voice Analysis</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Clock className="w-4 h-4 text-gray-500" />
+              <span className="font-mono text-lg">{formatTime(currentTime)}</span>
+            </div>
           </CardTitle>
-          <p className="text-gray-600">
-            Real-time AI feedback that doesn't interrupt your debate flow. Speak naturally and receive instant coaching.
-          </p>
         </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center space-x-4">
+            <Button
+              onClick={isRecording ? stopRecording : startRecording}
+              size="lg"
+              className={`${isRecording ? "bg-red-500 hover:bg-red-600" : "bg-blue-500 hover:bg-blue-600"} text-white`}
+            >
+              {isRecording ? (
+                <>
+                  <MicOff className="w-5 h-5 mr-2" />
+                  Stop Recording
+                </>
+              ) : (
+                <>
+                  <Mic className="w-5 h-5 mr-2" />
+                  Start Recording
+                </>
+              )}
+            </Button>
+
+            <Button variant="outline" onClick={resetSession} disabled={isRecording}>
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Reset
+            </Button>
+
+            <Button variant="outline" size="sm" onClick={() => setIsMuted(!isMuted)}>
+              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            </Button>
+          </div>
+        </CardContent>
       </Card>
 
-      {/* Controls & Settings */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Real-time Metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Session Controls</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Main Record Button */}
-            <div className="text-center">
-              <Button
-                onClick={handleStartStop}
-                size="lg"
-                className={`w-20 h-20 rounded-full text-white shadow-lg transition-all ${
-                  isLive ? "bg-red-500 hover:bg-red-600 animate-pulse" : "bg-blue-500 hover:bg-blue-600"
-                }`}
-              >
-                {isLive ? <MicOff className="w-8 h-8" /> : <Mic className="w-8 h-8" />}
-              </Button>
-              <p className="mt-2 font-medium">{isLive ? "Stop Recording" : "Start Recording"}</p>
-            </div>
-
-            {/* Settings */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Zap className="w-4 h-4 text-blue-600" />
-                  <span className="text-sm font-medium">AI Feedback</span>
-                </div>
-                <Switch checked={feedbackEnabled} onCheckedChange={onFeedbackToggle} />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  {audioEnabled ? (
-                    <Volume2 className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <VolumeX className="w-4 h-4 text-gray-400" />
-                  )}
-                  <span className="text-sm font-medium">Audio Feedback</span>
-                </div>
-                <Switch checked={audioEnabled} onCheckedChange={setAudioEnabled} />
-              </div>
-            </div>
+          <CardContent className="p-4 text-center">
+            <div className={`text-2xl font-bold ${getMetricColor(metrics.pace, "pace")}`}>{metrics.pace}</div>
+            <div className="text-sm text-gray-600">WPM</div>
+            <div className="text-xs text-gray-500 mt-1">Target: 140-160</div>
           </CardContent>
         </Card>
 
-        {/* Session Stats */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Session Statistics</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-3 bg-blue-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">{formatTime(sessionStats.duration)}</div>
-                <div className="text-sm text-blue-700">Duration</div>
-              </div>
-              <div className="text-center p-3 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{sessionStats.wordsSpoken}</div>
-                <div className="text-sm text-green-700">Words</div>
-              </div>
-              <div className="text-center p-3 bg-purple-50 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">{sessionStats.feedbackCount}</div>
-                <div className="text-sm text-purple-700">Feedback</div>
-              </div>
-              <div className="text-center p-3 bg-orange-50 rounded-lg">
-                <div className={`text-2xl font-bold ${getScoreColor(sessionStats.relevanceScore)}`}>
-                  {sessionStats.relevanceScore}%
-                </div>
-                <div className="text-sm text-orange-700">Relevance</div>
-              </div>
-            </div>
+          <CardContent className="p-4 text-center">
+            <div className={`text-2xl font-bold ${getMetricColor(metrics.clarity, "clarity")}`}>{metrics.clarity}%</div>
+            <div className="text-sm text-gray-600">Clarity</div>
+            <Progress value={metrics.clarity} className="h-2 mt-2" />
+          </CardContent>
+        </Card>
 
-            <div className="mt-4">
-              <div className="flex justify-between text-sm mb-1">
-                <span>Improvement Rate</span>
-                <span>{sessionStats.improvementRate}%</span>
-              </div>
-              <Progress value={sessionStats.improvementRate} className="h-2" />
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className={`text-2xl font-bold ${getMetricColor(metrics.confidence, "confidence")}`}>
+              {metrics.confidence}%
+            </div>
+            <div className="text-sm text-gray-600">Confidence</div>
+            <Progress value={metrics.confidence} className="h-2 mt-2" />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-orange-600">{metrics.fillerWords}</div>
+            <div className="text-sm text-gray-600">Filler Words</div>
+            <div className="text-xs text-gray-500 mt-1">
+              {metrics.totalWords > 0 ? `${((metrics.fillerWords / metrics.totalWords) * 100).toFixed(1)}%` : "0%"}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Live Feedback Overlay */}
-      {currentFeedback && (
-        <FeedbackOverlay
-          feedback={currentFeedback}
-          onDismiss={() => setCurrentFeedback(null)}
-          audioEnabled={audioEnabled}
-        />
-      )}
-
-      {/* Transcript Display */}
-      <TranscriptDisplay
-        transcript={transcript}
-        isLive={isLive}
-        relevanceScore={sessionStats.relevanceScore}
-        feedbackHistory={feedbackHistory}
-      />
-
-      {/* Feedback History */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center space-x-2">
-            <Target className="w-5 h-5 text-purple-600" />
-            <span>Recent Feedback</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3 max-h-60 overflow-y-auto">
-            {feedbackHistory.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No feedback yet. Start speaking to receive AI coaching!</p>
-            ) : (
-              feedbackHistory.map((feedback) => (
-                <div
-                  key={feedback.id}
-                  className={`p-3 rounded-lg border-l-4 ${
-                    feedback.type === "warning"
-                      ? "border-l-orange-500 bg-orange-50"
-                      : feedback.type === "success"
-                        ? "border-l-green-500 bg-green-50"
-                        : "border-l-blue-500 bg-blue-50"
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        {feedback.type === "warning" && <AlertTriangle className="w-4 h-4 text-orange-600" />}
-                        {feedback.type === "success" && <CheckCircle className="w-4 h-4 text-green-600" />}
-                        {feedback.type === "info" && <Zap className="w-4 h-4 text-blue-600" />}
-                        <span className="font-medium text-sm">{feedback.issue}</span>
-                      </div>
-                      <p className="text-sm text-gray-700 mb-1">{feedback.diagnosis}</p>
-                      <p className="text-xs text-gray-600">💡 {feedback.suggestion}</p>
-                    </div>
-                    <span className="text-xs text-gray-500">{new Date(feedback.timestamp).toLocaleTimeString()}</span>
-                  </div>
+      {/* Live Feedback */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <TrendingUp className="w-5 h-5 text-green-600" />
+              <span>Live Feedback</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {feedback.length === 0 ? (
+                <div className="text-center text-gray-500 py-8">
+                  <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>Start speaking to receive real-time feedback</p>
                 </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              ) : (
+                feedback
+                  .slice()
+                  .reverse()
+                  .map((item, index) => (
+                    <div key={index} className={`p-3 rounded-lg border ${getSeverityColor(item.severity)}`}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <Badge variant="secondary" className="text-xs">
+                              {item.type}
+                            </Badge>
+                            <span className="text-xs text-gray-500">
+                              {formatTime(Math.floor((Date.now() - item.timestamp) / 1000))} ago
+                            </span>
+                          </div>
+                          <p className="font-medium mt-1">{item.message}</p>
+                          <p className="text-sm mt-1">{item.suggestion}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Audio Streamer Component */}
-      <AudioStreamer
-        ref={audioStreamerRef}
-        isActive={isLive}
-        onTranscriptUpdate={handleTranscriptUpdate}
-        feedbackEnabled={feedbackEnabled}
-      />
+        {/* Live Transcript */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Volume2 className="w-5 h-5 text-blue-600" />
+              <span>Live Transcript</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-gray-50 p-4 rounded-lg max-h-80 overflow-y-auto">
+              {transcript ? (
+                <p className="text-sm leading-relaxed">{transcript}</p>
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  <Mic className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>Transcript will appear here as you speak</p>
+                </div>
+              )}
+            </div>
+            {transcript && (
+              <div className="mt-3 text-xs text-gray-500">Word count: {transcript.trim().split(/\s+/).length}</div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Session Summary */}
+      {duration > 0 && (
+        <Card className="bg-green-50 border-green-200">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-green-800">
+              <CheckCircle className="w-5 h-5" />
+              <span>Session Complete</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div>
+                <div className="text-2xl font-bold text-green-600">{formatTime(duration)}</div>
+                <div className="text-sm text-gray-600">Duration</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-blue-600">{metrics.totalWords}</div>
+                <div className="text-sm text-gray-600">Total Words</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-purple-600">{metrics.pace}</div>
+                <div className="text-sm text-gray-600">Avg WPM</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-orange-600">{feedback.length}</div>
+                <div className="text-sm text-gray-600">Feedback Items</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

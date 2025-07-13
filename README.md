@@ -1,238 +1,193 @@
-# DebateMaster - AI-Powered Debate Learning Platform
+# AI-Powered Debate Learning Platform
 
-## Overview
+A comprehensive platform for learning and practicing debate skills with real-time AI feedback, voice coaching, and gamified challenges.
 
-DebateMaster is a comprehensive, gamified learning platform designed to teach debate skills to school and college students through interactive AI-powered lessons, practice challenges, and detailed feedback systems.
+## Features
 
-## Key Features
+### 🎓 Learning Path
+- **Structured Modules**: Progressive learning from basics to advanced techniques
+- **Interactive Lessons**: Hands-on practice with immediate feedback
+- **Real-time Assessment**: AI-powered evaluation of arguments and reasoning
+- **PEEL Structure Training**: Master the Point-Evidence-Explanation-Link framework
 
-### 🎯 Progressive Learning System
-- **Structured Learning Path**: 5 core modules from basics to advanced techniques
-- **Interactive Lessons**: Video content, quizzes, simulations, and hands-on practice
-- **Adaptive Difficulty**: Content adjusts based on student performance and grade level
+### 🎤 Voice Practice
+- **Real-time Speech Analysis**: Live transcription and feedback
+- **AI Opponent**: Practice debates against intelligent AI responses
+- **Voice Coaching**: Continuous feedback on delivery and content
+- **Mobile-Optimized**: Touch-friendly interface for mobile practice
 
-### 🤖 AI-Powered Feedback
-- **Real-time Analysis**: Instant feedback on argument structure, logic, and presentation
-- **Fallacy Detection**: Identifies and explains logical fallacies in student arguments
-- **Personalized Recommendations**: Tailored suggestions for improvement based on individual weaknesses
+### 🏆 Gamification
+- **XP System**: Earn experience points for completing activities
+- **Achievements**: Unlock badges for milestones and challenges
+- **Leaderboards**: Compete with other learners globally
+- **Daily Challenges**: Keep engagement high with fresh content
 
-### 🎮 Gamification Elements
-- **XP System**: Earn experience points for completing lessons and challenges
-- **Achievement Badges**: Unlock rewards for reaching learning milestones
-- **Streak Tracking**: Maintain daily learning streaks for bonus rewards
-- **Leaderboards**: Compete with classmates in a healthy learning environment
+### 🎯 Practice Modes
+- **Topic Generator**: AI-generated debate motions across categories
+- **Timed Sessions**: Practice with realistic debate time constraints
+- **Note Preparation**: Structured preparation phase before debates
+- **Performance Analytics**: Track improvement over time
 
-### 🏆 Practice Challenges
-- **AI Debate Opponent**: Practice against sophisticated AI that adapts to student level
-- **Multiple Formats**: Support for Asian Parliamentary, British Parliamentary, and World Schools formats
-- **Real-time Scoring**: Immediate performance evaluation with detailed breakdowns
+### 👨‍🏫 Teacher Dashboard
+- **Student Progress**: Monitor individual and class performance
+- **Assignment Management**: Create and track debate assignments
+- **Analytics**: Detailed insights into learning patterns
+- **Curriculum Integration**: Align with educational standards
 
-### 📊 Comprehensive Analytics
-- **Skill Tracking**: Monitor progress across different debate competencies
-- **Performance Metrics**: Win rates, argument quality scores, and improvement trends
-- **Teacher Dashboard**: Classroom management and student progress monitoring
+## Technology Stack
 
-## Learning Modules
-
-### 1. Debate Fundamentals (Beginner)
-- Introduction to formal debating
-- Understanding different debate formats
-- Speaker roles and responsibilities
-- Basic debate etiquette and rules
-
-### 2. Building Strong Arguments (Beginner)
-- PEEL argument structure (Point, Evidence, Explanation, Link)
-- Effective use of evidence and examples
-- Logical reasoning and cause-effect relationships
-- Practice exercises with AI feedback
-
-### 3. Rebuttal Techniques (Intermediate)
-- Types of rebuttals and when to use them
-- Strategic timing and prioritization
-- Addressing multiple opposing arguments
-- Advanced counter-argumentation strategies
-
-### 4. Logical Fallacies (Intermediate)
-- Identification of common fallacies
-- Understanding why fallacies weaken arguments
-- Avoiding fallacies in your own arguments
-- Using fallacy identification in rebuttals
-
-### 5. Advanced Techniques (Advanced)
-- Strategic framing and narrative control
-- Weighing arguments and impact analysis
-- Powerful opening and closing statements
-- Advanced parliamentary procedure
-
-## Technical Architecture
-
-### Frontend
-- **Framework**: Next.js 14 with App Router
-- **Styling**: Tailwind CSS with shadcn/ui components
-- **State Management**: React hooks and context
-- **Responsive Design**: Mobile-first approach with cross-device compatibility
-
-### AI Integration
-- **Feedback Engine**: Advanced NLP for argument analysis
-- **Debate Opponent**: Contextual AI that adapts to student skill level
-- **Content Generation**: Dynamic question and scenario creation
-- **Performance Analytics**: ML-powered insights and recommendations
-
-### Database & Storage
-- **User Profiles**: Progress tracking and achievement systems
-- **Content Management**: Lesson materials and assessment data
-- **Analytics**: Performance metrics and learning outcomes
-- **Scalability**: Designed to handle thousands of concurrent users
-
-## Educational Value
-
-### Pedagogical Approach
-- **Constructivist Learning**: Students build knowledge through active practice
-- **Immediate Feedback**: Rapid iteration and improvement cycles
-- **Peer Learning**: Collaborative features and class competitions
-- **Metacognitive Development**: Reflection on thinking processes
-
-### Assessment Methods
-- **Formative Assessment**: Continuous feedback during lessons
-- **Summative Assessment**: Module completion tests and challenges
-- **Peer Assessment**: Student evaluation of debate performances
-- **Self-Assessment**: Reflection tools and progress tracking
-
-### Learning Outcomes
-- Improved critical thinking and analytical skills
-- Enhanced public speaking and presentation abilities
-- Better understanding of logical reasoning
-- Increased confidence in argumentation
-- Preparation for academic and professional success
-
-## Implementation Plan
-
-### Phase 1: Core Platform (Months 1-3)
-- Basic learning modules and lesson structure
-- User authentication and profile management
-- Simple AI feedback system
-- Mobile-responsive interface
-
-### Phase 2: Advanced Features (Months 4-6)
-- Sophisticated AI debate opponent
-- Comprehensive analytics dashboard
-- Teacher tools and classroom management
-- Advanced gamification features
-
-### Phase 3: Scale & Optimize (Months 7-9)
-- Performance optimization and scalability
-- Advanced AI features and personalization
-- Integration with school management systems
-- Comprehensive testing and quality assurance
-
-### Phase 4: Launch & Support (Months 10-12)
-- Pilot program with select schools
-- Teacher training and support materials
-- Feedback collection and iterative improvements
-- Full platform launch and marketing
-
-## Evaluation Metrics
-
-### Learning Effectiveness
-- **Pre/Post Assessments**: Measure skill improvement over time
-- **Engagement Metrics**: Time spent, lessons completed, return rates
-- **Performance Tracking**: Debate scores and competition results
-- **Teacher Feedback**: Educator assessment of student improvement
-
-### Technical Performance
-- **System Reliability**: Uptime, response times, error rates
-- **User Experience**: Interface usability and satisfaction scores
-- **Scalability**: Performance under increasing user loads
-- **AI Accuracy**: Feedback quality and relevance metrics
-
-### Educational Impact
-- **Skill Development**: Measurable improvement in debate abilities
-- **Confidence Building**: Self-reported confidence in public speaking
-- **Academic Performance**: Correlation with improved grades
-- **Long-term Retention**: Sustained skill improvement over time
-
-## Accessibility & Inclusivity
-
-### Universal Design
-- **Screen Reader Support**: Full compatibility with assistive technologies
-- **Keyboard Navigation**: Complete functionality without mouse input
-- **Color Contrast**: WCAG 2.1 AA compliance for visual accessibility
-- **Font Scaling**: Adjustable text sizes for visual impairments
-
-### Multilingual Support
-- **Content Localization**: Lessons available in multiple languages
-- **Cultural Adaptation**: Debate topics relevant to different cultures
-- **Regional Formats**: Support for local debate styles and rules
-
-### Diverse Learning Styles
-- **Visual Learners**: Rich graphics, diagrams, and video content
-- **Auditory Learners**: Audio explanations and speech recognition
-- **Kinesthetic Learners**: Interactive simulations and hands-on practice
-- **Reading/Writing**: Text-based exercises and written feedback
-
-## Future Enhancements
-
-### Advanced AI Features
-- **Natural Language Processing**: More sophisticated argument analysis
-- **Emotional Intelligence**: Recognition of persuasive techniques
-- **Personalized Learning Paths**: AI-curated content based on individual needs
-- **Predictive Analytics**: Early identification of struggling students
-
-### Extended Functionality
-- **Virtual Reality Debates**: Immersive debate environments
-- **Live Tournament System**: Real-time competitions between schools
-- **Expert Mentorship**: Connection with professional debaters and coaches
-- **Career Integration**: Links to debate scholarships and opportunities
-
-### Platform Expansion
-- **Mobile Applications**: Native iOS and Android apps
-- **Offline Capability**: Download lessons for use without internet
-- **API Integration**: Connect with existing school management systems
-- **White-label Solutions**: Customizable platform for different institutions
+- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
+- **UI Components**: shadcn/ui, Radix UI
+- **Backend**: Node.js, Express, Socket.IO
+- **Database**: PostgreSQL with Prisma ORM
+- **AI Integration**: OpenAI GPT-4, Whisper STT
+- **Real-time**: WebSocket connections for live feedback
+- **Mobile**: React Native for native mobile experience
+- **Deployment**: Docker, Kubernetes, Google Cloud Platform
 
 ## Getting Started
 
-### For Students
-1. Create an account and complete the initial assessment
-2. Start with the Debate Fundamentals module
-3. Progress through lessons at your own pace
-4. Practice with AI challenges to test your skills
-5. Track your progress and earn achievements
+### Prerequisites
+- Node.js 18+
+- PostgreSQL 14+
+- OpenAI API key
 
-### For Teachers
-1. Set up classroom accounts and student management
-2. Assign lessons and track student progress
-3. Use analytics to identify areas for additional support
-4. Organize class competitions and debates
-5. Access professional development resources
+### Installation
 
-### For Schools
-1. Contact our team for institutional licensing
-2. Integrate with existing learning management systems
-3. Train teachers on platform features and best practices
-4. Launch pilot programs with select classes
-5. Scale implementation across the institution
+1. Clone the repository:
+\`\`\`bash
+git clone https://github.com/your-org/debate-learning-platform.git
+cd debate-learning-platform
+\`\`\`
 
-## Support & Resources
+2. Install dependencies:
+\`\`\`bash
+npm install
+\`\`\`
 
-### Documentation
-- **User Guides**: Step-by-step instructions for all features
-- **Video Tutorials**: Visual walkthroughs of key functionality
-- **FAQ Section**: Answers to common questions and issues
-- **Best Practices**: Proven strategies for effective implementation
+3. Set up environment variables:
+\`\`\`bash
+cp .env.example .env.local
+# Edit .env.local with your configuration
+\`\`\`
 
-### Community
-- **Teacher Forums**: Peer support and resource sharing
-- **Student Communities**: Collaborative learning and practice groups
-- **Expert Webinars**: Regular sessions with debate professionals
-- **Success Stories**: Case studies from successful implementations
+4. Set up the database:
+\`\`\`bash
+npm run db:migrate
+npm run db:seed
+\`\`\`
 
-### Technical Support
-- **24/7 Help Desk**: Immediate assistance for technical issues
-- **Training Sessions**: Personalized onboarding for new users
-- **Regular Updates**: Continuous platform improvements and new features
-- **Feedback Integration**: User suggestions incorporated into development
+5. Start the development server:
+\`\`\`bash
+npm run dev
+\`\`\`
 
----
+6. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-*DebateMaster: Empowering the next generation of critical thinkers and effective communicators through innovative AI-powered education.*
+### Environment Variables
+
+\`\`\`env
+# Database
+DATABASE_URL="postgresql://user:password@localhost:5432/debate_platform"
+
+# OpenAI
+OPENAI_API_KEY="your-openai-api-key"
+
+# WebSocket
+NEXT_PUBLIC_WS_URL="ws://localhost:3001"
+
+# Authentication (optional)
+NEXTAUTH_SECRET="your-secret-key"
+NEXTAUTH_URL="http://localhost:3000"
+\`\`\`
+
+## Project Structure
+
+\`\`\`
+├── app/                    # Next.js app directory
+│   ├── components/         # React components
+│   ├── api/               # API routes
+│   └── (pages)/           # Page components
+├── backend/               # Express.js backend
+│   ├── src/
+│   │   ├── services/      # Business logic
+│   │   ├── websocket/     # WebSocket handlers
+│   │   └── database/      # Database models
+├── mobile/                # React Native app
+├── components/ui/         # Reusable UI components
+├── lib/                   # Utility functions
+├── public/                # Static assets
+└── k8s/                   # Kubernetes manifests
+\`\`\`
+
+## Key Components
+
+### Learning Path System
+- Progressive skill development
+- Adaptive difficulty based on performance
+- Comprehensive coverage of debate fundamentals
+
+### Real-time Voice Analysis
+- Speech-to-text with OpenAI Whisper
+- Continuous feedback during practice
+- Argument structure analysis
+- Logical fallacy detection
+
+### AI Debate Opponent
+- Context-aware responses
+- Realistic debate flow
+- Adaptive difficulty
+- Educational feedback
+
+### Mobile Experience
+- PWA capabilities
+- Offline practice modes
+- Touch-optimized interface
+- Native app for iOS/Android
+
+## Deployment
+
+### Docker
+\`\`\`bash
+docker build -t debate-platform .
+docker run -p 3000:3000 debate-platform
+\`\`\`
+
+### Kubernetes
+\`\`\`bash
+kubectl apply -f k8s/
+\`\`\`
+
+### Google Cloud Platform
+\`\`\`bash
+gcloud builds submit --tag gcr.io/PROJECT_ID/debate-platform
+gcloud run deploy --image gcr.io/PROJECT_ID/debate-platform
+\`\`\`
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+For support, email support@debateplatform.com or join our Discord community.
+
+## Roadmap
+
+- [ ] Advanced AI models for more sophisticated feedback
+- [ ] Video analysis capabilities
+- [ ] Tournament management system
+- [ ] Integration with educational platforms
+- [ ] Multi-language support
+- [ ] Advanced analytics dashboard
+\`\`\`
+
+Now let me add the real-time practice interface with proper timer, AI opponent, and voice functionality:
