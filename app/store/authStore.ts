@@ -119,7 +119,7 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true, error: null });
 
         try {
-          const response = await api.register(userData);
+          const response = await apiClient.register(userData);
 
           if (response.success) {
             set({
