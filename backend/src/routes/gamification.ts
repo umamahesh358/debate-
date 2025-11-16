@@ -4,6 +4,7 @@ import { AuthRequest } from '@/middleware/auth';
 import { validate, gamificationSchemas } from '@/middleware/validation';
 import { asyncHandler } from '@/middleware/errorHandler';
 import { GamificationService } from '@/services/gamificationService';
+import { prisma } from '@/config/prisma';
 import { logger } from '@/utils/logger';
 
 const router = express.Router();
@@ -15,7 +16,7 @@ router.get('/profile/:userId',
     const { userId } = req.params;
 
     // Check if user is requesting their own profile or if they have permission
-    if (!req.user || (req.user.id !== userId && !this.hasAdminPermission(req.user))) {
+    if (!req.user || (req.user.id !== userId && !await hasAdminPermission(req.user))) {
       return res.status(403).json({
         success: false,
         error: 'Access denied'
@@ -62,7 +63,7 @@ router.post('/points',
     }
 
     // Check admin permissions for awarding points to others
-    if (req.body.userId && req.body.userId !== req.user.id && !this.hasAdminPermission(req.user)) {
+    if (req.body.userId && req.body.userId !== req.user.id && !await hasAdminPermission(req.user)) {
       return res.status(403).json({
         success: false,
         error: 'Insufficient permissions'
@@ -168,7 +169,7 @@ router.get('/streaks/:userId',
     const { userId } = req.params;
 
     // Check permissions
-    if (!req.user || (req.user.id !== userId && !this.hasAdminPermission(req.user))) {
+    if (!req.user || (req.user.id !== userId && !await hasAdminPermission(req.user))) {
       return res.status(403).json({
         success: false,
         error: 'Access denied'
@@ -192,7 +193,7 @@ router.get('/streaks/:userId',
     }
 
     // Calculate streak details
-    const streakInfo = await this.calculateStreakDetails(userId);
+    const streakInfo = await calculateStreakDetails(userId);
 
     res.json({
       success: true,
@@ -200,7 +201,7 @@ router.get('/streaks/:userId',
         currentStreak: userProfile.streak,
         longestStreak: streakInfo.longestStreak,
         streakHistory: streakInfo.history,
-        nextMilestone: this.getNextStreakMilestone(userProfile.streak)
+        nextMilestone: getNextStreakMilestone(userProfile.streak)
       }
     });
   })
@@ -232,7 +233,7 @@ router.get('/streaks',
       });
     }
 
-    const streakInfo = await this.calculateStreakDetails(req.user.id);
+    const streakInfo = await calculateStreakDetails(req.user.id);
 
     res.json({
       success: true,
@@ -240,7 +241,7 @@ router.get('/streaks',
         currentStreak: userProfile.streak,
         longestStreak: streakInfo.longestStreak,
         streakHistory: streakInfo.history,
-        nextMilestone: this.getNextStreakMilestone(userProfile.streak)
+        nextMilestone: getNextStreakMilestone(userProfile.streak)
       }
     });
   })
@@ -306,13 +307,13 @@ router.get('/events',
 );
 
 // Helper methods
-private async hasAdminPermission(user: any): Promise<boolean> {
+async function hasAdminPermission(user: any): Promise<boolean> {
   // TODO: Implement proper role-based permissions
   // For now, return false (no admin permissions)
   return false;
 }
 
-private async calculateStreakDetails(userId: string) {
+async function calculateStreakDetails(userId: string) {
   // Get recent gamification events to calculate streak
   const recentEvents = await prisma.gamificationEvent.findMany({
     where: {
@@ -345,8 +346,8 @@ private async calculateStreakDetails(userId: string) {
   let longestStreak = 0;
 
   for (let i = 0; i < sortedDays.length; i++) {
-    const currentDate = new Date(sortedDays[i]);
-    const previousDate = i > 0 ? new Date(sortedDays[i - 1]) : null;
+    const currentDate = new Date(sortedDays[i] as string);
+    const previousDate = i > 0 ? new Date(sortedDays[i - 1] as string) : null;
 
     if (previousDate) {
       const dayDiff = (currentDate.getTime() - previousDate.getTime()) / (1000 * 60 * 60 * 24);
@@ -372,7 +373,7 @@ private async calculateStreakDetails(userId: string) {
   };
 }
 
-private getNextStreakMilestone(currentStreak: number) {
+function getNextStreakMilestone(currentStreak: number) {
   const milestones = [1, 3, 7, 14, 30, 60, 100, 365];
   const nextMilestone = milestones.find(m => m > currentStreak);
 
@@ -381,8 +382,5 @@ private getNextStreakMilestone(currentStreak: number) {
     reward: `Continue your learning journey!`
   };
 }
-
-// Import prisma for the helper methods
-import { prisma } from '@/config/prisma';
 
 export default router;
