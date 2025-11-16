@@ -179,7 +179,7 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true, error: null });
 
         try {
-          const response = await api.updateProfile(profileData);
+          const response = await apiClient.updateProfile(profileData);
 
           if (response.success) {
             set(state => ({
