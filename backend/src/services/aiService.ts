@@ -1,11 +1,21 @@
 import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { logger } from '@/utils/logger';
 
-// Initialize OpenAI client
+// Initialize AI clients
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
   organization: process.env.OPENAI_ORG_ID || undefined
 });
+
+const googleAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
+const googleModel = googleAI.getGenerativeModel({ model: 'gemini-pro' });
+
+// Determine AI provider
+const getAIProvider = (): 'openai' | 'google' => {
+  return (process.env.AI_PROVIDER as 'openai' | 'google') ||
+         (process.env.GOOGLE_API_KEY ? 'google' : 'openai');
+};
 
 export interface ArgumentAnalysis {
   strength: number; // 1-5
