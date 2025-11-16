@@ -161,6 +161,7 @@ model Achievement {
   tier            String    @default("bronze") // bronze, silver, gold, platinum
   isActive        Boolean   @default(true)
   earnedCount     Int       @default(0)
+  achievements    UserAchievement[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
