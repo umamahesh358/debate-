@@ -569,20 +569,30 @@ Respond in JSON format:
   static async checkHealth(): Promise<{ status: string; latency?: number; error?: string }> {
     try {
       const startTime = Date.now();
+      const provider = getAIProvider();
 
-      // Simple test call
-      await openai.models.list();
+      if (provider === 'google') {
+        // Test Google AI
+        await googleAI.getGenerativeModel({ model: 'gemini-pro' });
+        logger.info('Google AI health check passed');
+      } else {
+        // Test OpenAI
+        await openai.models.list();
+        logger.info('OpenAI health check passed');
+      }
 
       const latency = Date.now() - startTime;
 
       return {
         status: 'healthy',
-        latency
+        latency,
+        provider
       };
     } catch (error) {
       return {
         status: 'unhealthy',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
+        provider: getAIProvider()
       };
     }
   }
