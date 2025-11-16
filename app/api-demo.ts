@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { api, DebateTopic, DebateSession } from './services/debateApi';
+import { api as apiClient } from './services/api';
 
 // Simple demo component to test backend integration
 export default function ApiDemo() {
