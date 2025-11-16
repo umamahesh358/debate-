@@ -1,4 +1,5 @@
 import express from 'express';
+import Joi from 'joi';
 import { AuthRequest } from '@/middleware/auth';
 import { validate, debateSchemas } from '@/middleware/validation';
 import { asyncHandler } from '@/middleware/errorHandler';
