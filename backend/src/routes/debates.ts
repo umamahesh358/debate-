@@ -43,7 +43,7 @@ router.get('/topics',
 
 // Get specific debate topic
 router.get('/topics/:id',
-  validate({ params: { id: debateSchemas.getSession.extract('id') } }),
+  validate({ params: { id: Joi.string().required() } }),
   asyncHandler(async (req: AuthRequest, res: express.Response) => {
     const { id } = req.params;
 
