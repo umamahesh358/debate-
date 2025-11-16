@@ -214,9 +214,9 @@ router.get('/stats',
 // Complete debate session (automatically calculates score)
 router.post('/sessions/:id/complete',
   validate({
-    params: { id: debateSchemas.getSession.extract('id') },
+    params: { id: Joi.string().required() },
     body: {
-      transcript: express.request.body.transcript ? Joi.object().required() : Joi.object().optional(),
+      transcript: Joi.object().required(),
       metrics: Joi.object().required(),
       duration: Joi.number().min(0).required()
     }
