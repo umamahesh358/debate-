@@ -1,0 +1,292 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  email           String    @unique
+  username        String    @unique
+  passwordHash    String
+  profile         UserProfile?
+  debates         DebateSession[]
+  learningProgress LearningProgress[]
+  achievements    UserAchievement[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([email])
+  @@index([username])
+  @@index([createdAt])
+}
+
+model UserProfile {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String    @unique @db.ObjectId
+  user            User      @relation(fields: [userId], references: [id])
+  displayName     String
+  avatar          String?
+  bio             String?
+  level           Int       @default(1)
+  experience      Int       @default(0)
+  streak          Int       @default(0)
+  preferences     Json?     // User preferences like theme, notifications, etc.
+  totalDebates    Int       @default(0)
+  wins            Int       @default(0)
+  averageScore    Float?     @default(0.0)
+  favoriteTopics  String[]  // Array of topic IDs
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([level])
+  @@index([experience])
+  @@index([streak])
+}
+
+model DebateTopic {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  title           String
+  motion          String    // The actual debate motion/statement
+  description     String
+  category        String    // e.g., "Politics", "Technology", "Ethics"
+  difficulty      DifficultyLevel
+  timeLimit       Int       // Time limit in minutes
+  keyArguments    Json      // {government: string[], opposition: string[]}
+  tags            String[]   // Tags for better searchability
+  isActive        Boolean   @default(true)
+  usageCount      Int       @default(0)
+  averageRating   Float?    @default(0.0)
+  ratingCount     Int       @default(0)
+  createdBy       String?   @db.ObjectId  // Admin who created it
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([category])
+  @@index([difficulty])
+  @@index([isActive])
+  @@index([usageCount])
+  @@index([tags])
+}
+
+model DebateSession {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String    @db.ObjectId
+  user            User      @relation(fields: [userId], references: [id])
+  topicId         String    @db.ObjectId
+  topic           DebateTopic @relation(fields: [topicId], references: [id])
+  role            DebateRole
+  score           Int?
+  maxScore        Int       @default(100)
+  transcript      Json?     // Full debate transcript with timestamps
+  feedback        Json?     // AI feedback and analysis
+  videoUrl        String?   // Recorded video URL
+  duration        Int?      // Duration in seconds
+  completedAt     DateTime?
+  isLive          Boolean   @default(false)
+  roomId          String?   // WebSocket room ID for live sessions
+  metrics         Json?     // Speaking pace, argument count, etc.
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([topicId])
+  @@index([role])
+  @@index([completedAt])
+  @@index([isLive])
+}
+
+model LearningModule {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  title           String
+  description     String
+  content         Json      // Lesson content, videos, exercises
+  level           Int       // 1-5 difficulty level
+  order           Int       // Order within the level
+  prerequisites   String[]  // Module IDs that must be completed first
+  estimatedTime   Int       // Estimated time in minutes
+  category        String    // e.g., "Beginner", "Argumentation", "Style"
+  tags            String[]
+  isActive        Boolean   @default(true)
+  completionCount Int       @default(0)
+  averageRating   Float?    @default(0.0)
+  ratingCount     Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([level])
+  @@index([category])
+  @@index([isActive])
+  @@index([order])
+}
+
+model LearningProgress {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String    @db.ObjectId
+  user            User      @relation(fields: [userId], references: [id])
+  moduleId        String    @db.ObjectId
+  module          LearningModule @relation(fields: [moduleId], references: [id])
+  status          ProgressStatus
+  completion      Float     @default(0.0) // 0.0 to 1.0
+  timeSpent       Int       @default(0)    // Minutes
+  lastAccessed    DateTime  @default(now())
+  completedAt     DateTime?
+  notes           String?   // User notes about the module
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([userId, moduleId])
+  @@index([userId])
+  @@index([moduleId])
+  @@index([status])
+}
+
+model Achievement {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  description     String
+  icon            String    // Icon name or URL
+  type            AchievementType
+  criteria        Json      // Completion criteria (e.g., {debates: 10, wins: 5})
+  points          Int
+  tier            String    @default("bronze") // bronze, silver, gold, platinum
+  isActive        Boolean   @default(true)
+  earnedCount     Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([type])
+  @@index([tier])
+  @@index([isActive])
+}
+
+model UserAchievement {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String    @db.ObjectId
+  user            User      @relation(fields: [userId], references: [id])
+  achievementId   String    @db.ObjectId
+  achievement     Achievement @relation(fields: [achievementId], references: [id])
+  earnedAt        DateTime  @default(now())
+  progress        Json?     // Progress data for incremental achievements
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@index([achievementId])
+}
+
+model GamificationEvent {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String    @db.ObjectId
+  eventType       String    // "debate_completed", "module_completed", "streak_maintained"
+  points          Int
+  description     String
+  metadata        Json?     // Additional event data
+  createdAt       DateTime  @default(now())
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+model Leaderboard {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  period          LeaderboardPeriod
+  category        String    @default("overall") // "weekly", "monthly", "overall", "debates", "learning"
+  entries         Json[]    // Array of {userId, score, rank, change}
+  lastUpdated     DateTime  @default(now())
+  isActive        Boolean   @default(true)
+
+  @@unique([period, category])
+  @@index([period])
+  @@index([category])
+  @@index([lastUpdated])
+}
+
+model VideoUpload {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String    @db.ObjectId
+  sessionId       String?   @db.ObjectId  // Associated debate session
+  originalName    String
+  fileName        String
+  filePath        String
+  fileSize        Int       // in bytes
+  duration        Int?      // in seconds
+  format          String
+  resolution      Json?     // {width, height}
+  status          VideoStatus
+  analysisResults Json?     // AI analysis results
+  thumbnailUrl    String?
+  processingStarted DateTime?
+  processingCompleted DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model CachedContent {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  key             String    @unique
+  content         Json      // Cached data (topics, user recommendations, etc.)
+  expiresAt       DateTime
+  createdAt       DateTime  @default(now())
+
+  @@index([expiresAt])
+}
+
+enum DifficultyLevel {
+  Beginner
+  Intermediate
+  Advanced
+  Expert
+  Master
+}
+
+enum DebateRole {
+  government
+  opposition
+}
+
+enum ProgressStatus {
+  not_started
+  in_progress
+  completed
+  locked
+}
+
+enum AchievementType {
+  debate_wins
+  learning_complete
+  streak_milestone
+  participation
+  score_achievement
+  time_spent
+  social
+  video_analysis
+}
+
+enum LeaderboardPeriod {
+  daily
+  weekly
+  monthly
+  overall
+}
+
+enum VideoStatus {
+  uploading
+  processing
+  analyzing
+  completed
+  failed
+  deleted
+}
