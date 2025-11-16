@@ -57,6 +57,16 @@ export function DebatePracticeInterface() {
   const [currentRound, setCurrentRound] = useState(1)
   const [maxRounds] = useState(6)
 
+  // Import API service
+  const {
+    getTopics,
+    getRandomTopic,
+    createDebateSession,
+    getUserDebates,
+    getDebateStats,
+    generateSessionFeedback
+  } = debateApi;
+
   // Voice features
   const [voiceEnabled, setVoiceEnabled] = useState(true)
   const [aiVoiceEnabled, setAiVoiceEnabled] = useState(true)
