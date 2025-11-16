@@ -206,7 +206,8 @@ export const useDebateStore = create<DebateStore>()(
           set({ isLoading: true, error: null });
 
           try {
-            const session = await actions.createDebateSession({ topicId, role });
+            const { data: sessionData } = await actions.createDebateSession({ topicId, role });
+            const session = sessionData.session;
 
             set(state => ({
               ...state,
