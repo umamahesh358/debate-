@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:6.0
+    container_name: debate-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: debate_platform
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - debate-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: debate-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - debate-network
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: debate-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: mongodb://admin:password@mongodb:27017/debate_platform?authSource=admin
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_ORG_ID: ${OPENAI_ORG_ID:-}
+      PORT: 3001
+      FRONTEND_URL: http://frontend:3000
+      SOCKET_CORS_ORIGIN: http://frontend:3000
+      UPLOAD_DIR: ./uploads
+      MAX_FILE_SIZE: "104857600"
+      RATE_LIMIT_WINDOW_MS: "900000"
+      RATE_LIMIT_MAX_REQUESTS: "100"
+      LOG_LEVEL: info
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./uploads:/app/uploads
+      - backend_logs:/app/logs
+    networks:
+      - debate-network
+    depends_on:
+      - mongodb
+      - redis
+
+  # Frontend Next.js
+  frontend:
+    build:
+      context: ./debate-
+      dockerfile: debate-/Dockerfile
+    container_name: debate-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://backend:3001/api
+      NEXT_PUBLIC_WS_URL: ws://backend:3001
+    ports:
+      - "3000:3000"
+    networks:
+      - debate-network
+    depends_on:
+      - backend
+
+volumes:
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+  backend_logs:
+    driver: local
+
+networks:
+  debate-network:
+    driver: bridge
