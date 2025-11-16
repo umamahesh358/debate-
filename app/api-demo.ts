@@ -18,7 +18,7 @@ export default function ApiDemo() {
       try {
         setLoading(true);
         setError(null);
-        const response = await api.getTopics();
+        const response = await apiClient.getTopics();
 
         if (response.success) {
           setTopics(response.data.topics);
