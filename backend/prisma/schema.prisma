@@ -74,6 +74,7 @@ model DebateTopic {
   @@index([isActive])
   @@index([usageCount])
   @@index([tags])
+  sessions        DebateSession[]
 }
 
 model DebateSession {
