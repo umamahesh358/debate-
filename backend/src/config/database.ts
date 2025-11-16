@@ -7,7 +7,6 @@ const mongooseOptions: mongoose.ConnectOptions = {
   maxPoolSize: 10, // Maximum number of sockets in the connection pool
   serverSelectionTimeoutMS: 5000, // How long to try selecting a new connection before giving up
   socketTimeoutMS: 45000, // How long a send or receive on a socket can take before timing out
-  maxPoolSize: 10, // Maximum number of sockets in the connection pool
   bufferCommands: false, // Disable mongoose buffering
   retryWrites: true,
   w: 'majority'
