@@ -1,5 +1,6 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
+import Joi from 'joi';
 import { prisma } from '@/config/prisma';
 import { generateTokens, verifyToken, AuthRequest, authRateLimit } from '@/middleware/auth';
 import { validate, authSchemas } from '@/middleware/validation';
