@@ -67,7 +67,7 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true, error: null });
 
         try {
-          const response = await api.login({ email, password });
+          const response = await apiClient.login({ email, password });
 
           if (response.success) {
             set({
