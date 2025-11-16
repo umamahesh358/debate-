@@ -5,12 +5,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AIService = void 0;
 const openai_1 = __importDefault(require("openai"));
+const generative_ai_1 = require("@google/generative-ai");
 const logger_1 = require("@/utils/logger");
-// Initialize OpenAI client
+// Initialize AI clients
 const openai = new openai_1.default({
     apiKey: process.env.OPENAI_API_KEY || '',
     organization: process.env.OPENAI_ORG_ID || undefined
 });
+const googleAI = new generative_ai_1.GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
+const googleModel = googleAI.getGenerativeModel({ model: 'gemini-pro' });
+// Determine AI provider
+const getAIProvider = () => {
+    return process.env.AI_PROVIDER ||
+        (process.env.GOOGLE_API_KEY ? 'google' : 'openai');
+};
 class AIService {
     // Analyze debate argument
     static async analyzeArgument(transcript, context) {
@@ -51,24 +59,33 @@ Respond in JSON format:
   "improvements": ["improvement1", "improvement2", "..."]
 }
       `;
-            const completion = await openai.chat.completions.create({
-                model: 'gpt-4',
-                messages: [
-                    {
-                        role: 'system',
-                        content: 'You are an expert debate analyst providing constructive feedback on debate arguments.'
-                    },
-                    {
-                        role: 'user',
-                        content: prompt
-                    }
-                ],
-                max_tokens: 1000,
-                temperature: 0.3
-            });
-            const analysisText = completion.choices[0]?.message?.content || '{}';
+            let analysisText;
+            const provider = getAIProvider();
+            if (provider === 'google') {
+                const result = await googleModel.generateContent(prompt);
+                analysisText = result.response.text() || '{}';
+                logger_1.logger.info('Google AI analysis completed for argument analysis');
+            }
+            else {
+                const completion = await openai.chat.completions.create({
+                    model: 'gpt-4',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'You are an expert debate analyst providing constructive feedback on debate arguments.'
+                        },
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    max_tokens: 1000,
+                    temperature: 0.3
+                });
+                analysisText = completion.choices[0]?.message?.content || '{}';
+                logger_1.logger.info('OpenAI analysis completed for argument analysis');
+            }
             const analysis = JSON.parse(analysisText);
-            logger_1.logger.info(`AI analysis completed for argument analysis`);
             return {
                 strength: analysis.strength || 3,
                 clarity: analysis.clarity || 3,
@@ -441,18 +458,29 @@ Respond in JSON format:
     static async checkHealth() {
         try {
             const startTime = Date.now();
-            // Simple test call
-            await openai.models.list();
+            const provider = getAIProvider();
+            if (provider === 'google') {
+                // Test Google AI
+                await googleAI.getGenerativeModel({ model: 'gemini-pro' });
+                logger_1.logger.info('Google AI health check passed');
+            }
+            else {
+                // Test OpenAI
+                await openai.models.list();
+                logger_1.logger.info('OpenAI health check passed');
+            }
             const latency = Date.now() - startTime;
             return {
                 status: 'healthy',
-                latency
+                latency,
+                provider
             };
         }
         catch (error) {
             return {
                 status: 'unhealthy',
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : 'Unknown error',
+                provider: getAIProvider()
             };
         }
     }
