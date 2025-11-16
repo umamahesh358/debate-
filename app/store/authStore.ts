@@ -95,7 +95,7 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true });
 
         try {
-          await api.logout();
+          await apiClient.logout();
           set({
             user: null,
             tokens: { accessToken: null, refreshToken: null },
