@@ -64,8 +64,8 @@ export const useSocket = (callbacks: SocketCallbacks = {}) => {
       reconnectAttempts.current = 0;
 
       // Authenticate automatically if user is logged in
-      if (api.isAuthenticated()) {
-        const auth = api.getCurrentUser();
+      if (apiClient.isAuthenticated()) {
+        const auth = apiClient.getCurrentUser();
         if (auth?.tokens?.accessToken) {
           socket.emit('authenticate', auth.tokens.accessToken);
         }
