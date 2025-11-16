@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { api } from '@/services/api';
+import { apiClient } from '@/services/api';
 
 interface SocketState {
   connected: boolean;
