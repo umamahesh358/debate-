@@ -101,26 +101,34 @@ Respond in JSON format:
 }
       `;
 
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert debate analyst providing constructive feedback on debate arguments.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        max_tokens: 1000,
-        temperature: 0.3
-      });
+      let analysisText: string;
+      const provider = getAIProvider();
 
-      const analysisText = completion.choices[0]?.message?.content || '{}';
+      if (provider === 'google') {
+        const result = await googleModel.generateContent(prompt);
+        analysisText = result.response.text() || '{}';
+        logger.info('Google AI analysis completed for argument analysis');
+      } else {
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-4',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert debate analyst providing constructive feedback on debate arguments.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 1000,
+          temperature: 0.3
+        });
+        analysisText = completion.choices[0]?.message?.content || '{}';
+        logger.info('OpenAI analysis completed for argument analysis');
+      }
+
       const analysis = JSON.parse(analysisText);
-
-      logger.info(`AI analysis completed for argument analysis`);
 
       return {
         strength: analysis.strength || 3,
