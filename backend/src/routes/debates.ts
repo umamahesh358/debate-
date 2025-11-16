@@ -263,7 +263,7 @@ router.post('/sessions/:id/complete',
 
 // Generate AI feedback for debate session
 router.post('/sessions/:id/feedback',
-  validate({ params: { id: debateSchemas.getSession.extract('id') } }),
+  validate({ params: { id: Joi.string().required() } }),
   asyncHandler(async (req: AuthRequest, res: express.Response) => {
     if (!req.user) {
       return res.status(401).json({
