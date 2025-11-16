@@ -210,8 +210,8 @@ export const useSocket = (callbacks: SocketCallbacks = {}) => {
   // Authentication when user logs in/out
   useEffect(() => {
     if (socketRef.current && socketRef.current.connected) {
-      if (api.isAuthenticated()) {
-        const auth = api.getCurrentUser();
+      if (apiClient.isAuthenticated()) {
+        const auth = apiClient.getCurrentUser();
         if (auth?.tokens?.accessToken) {
           socketRef.current.emit('authenticate', auth.tokens.accessToken);
         }
@@ -220,7 +220,7 @@ export const useSocket = (callbacks: SocketCallbacks = {}) => {
         socketRef.current.disconnect();
       }
     }
-  }, [api.isAuthenticated()]);
+  }, [apiClient.isAuthenticated()]);
 
   // Socket actions
   const actions = {
