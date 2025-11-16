@@ -151,7 +151,7 @@ export const useAuthStore = create<AuthStore>()(
         }
 
         try {
-          const response = await api.login(tokens.refreshToken);
+          const response = await apiClient.login(tokens.refreshToken);
 
           if (response.success) {
             set({
