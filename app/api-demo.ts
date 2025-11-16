@@ -39,7 +39,7 @@ export default function ApiDemo() {
   const handleTopicSelect = (topic: DebateTopic) => {
     setSelectedTopic(topic);
     // Create session for selected topic
-    api.createDebateSession({
+    apiClient.createDebateSession({
       topicId: topic.id,
       role: 'government'
     }).then(response => {
